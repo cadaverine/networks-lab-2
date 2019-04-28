@@ -17,9 +17,9 @@ func main() {
 	port := os.Args[1]
 
 	// ожидание ввода текста
-	terminal := color.Style{color.FgCyan, color.OpBold}
+	terminal := color.Style{color.FgCyan}
 	terminal.Printf("UDP server is listening on: localhost:%s\n", port)
-	terminal.Println("Waiting request...")
+	terminal.Printf("Waiting request...\n\n")
 
 	address, err := net.ResolveUDPAddr("udp", ":"+port)
 	checkError(err)
@@ -27,16 +27,34 @@ func main() {
 	connection, err := net.ListenUDP("udp", address)
 	checkError(err)
 
-	buffer := []byte{}
+	buffer := make([]byte, 512)
 
 	for {
-		_, clientAddress, err := connection.ReadFromUDP(buffer)
+		length, clientAddress, err := connection.ReadFromUDP(buffer)
 		checkError(err)
 
-		fmt.Println(buffer)
+		message := string(buffer[0:length-1])
 
-		connection.WriteToUDP(buffer, clientAddress)
+		terminal.Printf("Client address: %s\n", clientAddress)
+		terminal.Printf("Client message: %s\n", message)
+
+		reversed := reverseString(message)
+
+		connection.WriteToUDP([]byte(reversed), clientAddress)
+
+		terminal.Printf("Reversed message ('%s') was sended back.\n\n", reversed)
 	}
+}
+
+func reverseString(str string) string {
+	length := len(str)
+	runes := make([]rune, length)
+
+	for i, char := range str {
+		runes[length - (i + 1)] = char
+	}
+
+	return string(runes)
 }
 
 func checkError(err error) {
