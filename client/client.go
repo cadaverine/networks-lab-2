@@ -15,32 +15,36 @@ func main() {
 		os.Exit(1)
 	}
 
-	// ожидание ввода текста
-	terminal := color.Style{color.FgCyan, color.OpBold}
-	terminal.Println("UDP client is started.")
-	terminal.Println("Please type a text:")
-
-	stringToSend, _ := bufio.NewReader(os.Stdin).ReadString('\n')
-
 	// подключение к серверу
-	address := os.Args[1]
+	address, err := net.ResolveUDPAddr("udp", os.Args[1])
+	checkError(err)
 
-	connection, err := net.Dial("udp", address)
+	connection, err := net.DialUDP("udp", nil, address)
 	checkError(err)
 
 	defer connection.Close()
 
-	fmt.Fprintf(connection, stringToSend)
+	// ожидание ввода текста
+	terminal := color.Style{color.FgCyan}
+	terminal.Println("UDP client is started.")
 
-	bytesFromServer := []byte{}
+	for {
+		terminal.Println("\nPlease type a text:")
 
-	length, err := connection.Read(bytesFromServer)
-	checkError(err)
+		message, _ := bufio.NewReader(os.Stdin).ReadBytes('\n')
 
-	stringFromServer := string(bytesFromServer[0:length])
+		connection.Write(message)
 
-	terminal.Println("Server answer:")
-	terminal.Println(stringFromServer)
+		bytesFromServer := make([]byte, 512)
+
+		length, err := connection.Read(bytesFromServer)
+		checkError(err)
+
+		stringFromServer := string(bytesFromServer[0:length])
+
+		terminal.Println("\nServer answer:")
+		fmt.Println(stringFromServer)
+	}
 }
 
 func checkError(err error) {
